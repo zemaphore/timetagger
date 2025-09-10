@@ -1,93 +1,136 @@
-
-name: "Build and push release docker image"
-
+name: Deploy
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+      - develop
+  pull_request: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
+  actions: write
   contents: read
-  packages: write
 
 jobs:
-
-  # Build default priviliged container image version
-  docker-root:
+  deploy-prod:
+    name: "Build/Deploy PROD"
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub container registry
-        uses: docker/login-action@v2
+      - name: Build Docker Image
+        run: |
+          docker build -t timetagger-prod -f deploy/repo.Dockerfile .
+
+      - name: Save Docker Image
+        run: |
+          docker save timetagger-prod:latest | gzip > image.tar.gz
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/prod.key
+          chmod 600 ~/.ssh/prod.key
+          cat >>~/.ssh/config <<END
+          Host target
+              HostName docker01.fra.askei.net
+              User sa_deploy_timetagger
+              IdentityFile ~/.ssh/prod.key
+              StrictHostKeyChecking no
+          END
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_PROD_SSH_PRIVATE_KEY }}
+
+      - name: Tailscale
+        uses: tailscale/github-action@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN  }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:timetagger-deploy
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: type=ref,event=tag
+      - name: Copy Docker Image to Target
+        run: |
+          scp image.tar.gz target:~/image.tar.gz
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          file: deploy/repo.Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      - name: Cleanup Local Files
+        run: |
+          rm .env
+          rm image.tar.gz
 
-  # Build non-root container image variant
-  docker-nonroot:
+      - name: Load Docker Image on Target
+        run: |
+          ssh target 'gunzip ~/image.tar.gz'
+          ssh target 'docker load -i ~/image.tar'
+          ssh target 'rm ~/image.tar'
+
+      - name: Restart Server on Target
+        run: ssh target 'cd /opt/stacks/timetagger-prod && docker compose up -d'
+
+  deploy-qa:
+    name: "Build/Deploy QA"
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub container registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN  }}
+      - name: Build Docker Image
+        run: |
+          docker build -t timetagger-qa -f deploy/repo.Dockerfile .
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta-nonroot
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/${{ github.repository }}
-          # no "latest" tag for non-root variant
-          flavor: latest=false
-          tags: |
-            type=ref,event=tag,suffix=-nonroot
-            # set latest-nonroot tag for default branch
-            type=raw,value=latest-nonroot
+      - name: Save Docker Image
+        run: |
+          docker save timetagger-qa:latest | gzip > image.tar.gz
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/qa.key
+          chmod 600 ~/.ssh/qa.key
+          cat >>~/.ssh/config <<END
+          Host target
+              HostName docker01.fra.askei.net
+              User sa_deploy_timetagger
+              IdentityFile ~/.ssh/qa.key
+              StrictHostKeyChecking no
+          END
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_QA_SSH_PRIVATE_KEY }}
+
+      - name: Tailscale
+        uses: tailscale/github-action@v2
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          file: deploy/repo.nonroot.Dockerfile
-          push: true
-          tags: ${{ steps.meta-nonroot.outputs.tags }}
-          labels: ${{ steps.meta-nonroot.outputs.labels }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:timetagger-deploy
+
+      - name: Copy Docker Image to Target
+        run: |
+          scp image.tar.gz target:~/image.tar.gz
+
+      - name: Cleanup Local Files
+        run: |
+          rm .env
+          rm image.tar.gz
+
+      - name: Load Docker Image on Target
+        run: |
+          ssh target 'gunzip ~/image.tar.gz'
+          ssh target 'docker load -i ~/image.tar'
+          ssh target 'rm ~/image.tar'
+
+      - name: Restart Server on Target
+        run: ssh target 'cd /opt/stacks/timetagger-qa && docker compose up -d'
