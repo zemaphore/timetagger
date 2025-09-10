@@ -4,7 +4,6 @@
 <br />
 
 <img src='timetagger_wd.svg' width='350px' />
-<h1 class='normalfont'><span style='border-bottom: 3px solid #DEAA22;'>Tag</span> your time,<br>get the <span style='border-bottom: 3px solid  #DEAA22;'>insight</span>.</h1>
 
 <style>
 main a.ctabutton {
@@ -25,8 +24,6 @@ main a.ctabutton:hover {
 </style>
 
 <div>
-    <a href='app/demo' class='ctabutton'>
-        <i class='fas'>\uf04b</i>&nbsp;&nbsp;Demo</a>
     <a href='app/' class='ctabutton'>
         <i class='fas'>\uf04b</i>&nbsp;&nbsp;App</a>
 </div>
