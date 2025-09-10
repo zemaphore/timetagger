@@ -273,16 +273,16 @@ class TimeTaggerCanvas(BaseCanvas):
         # ctx.fillRect(0, 0, self.w, self.h)
 
         # Draw icon in bottom right
-        if self.w >= 800:
-            iconw = 162 if self.w >= 400 else 96
-            iconh = iconw / 6
-            ctx.drawImage(
-                window.document.getElementById("ttlogo_tg"),
-                self.w - iconw - 5,
-                self.h - iconh - 5,
-                iconw,
-                iconh,
-            )
+        #if self.w >= 800:
+        #    iconw = 162 if self.w >= 400 else 96
+        #    iconh = iconw / 6
+        #    ctx.drawImage(
+        #        window.document.getElementById("ttlogo_tg"),
+        #        self.w - iconw - 5,
+        #        self.h - iconh - 5,
+        #        iconw,
+        #        iconh,
+        #    )
 
         # Determine if we are logged in and all is right (e.g. token not expired)
         cantuse = None
@@ -951,17 +951,17 @@ class TopWidget(Widget):
         ctx.fillRect(0, 0, x2, 60)
 
         # Draw icon in top-right
-        icon_margin = 8
-        icon_size = (y2 - y1) - 2 * icon_margin
+        #icon_margin = 8
+        #icon_size = (y2 - y1) - 2 * icon_margin
 
-        if icon_size:
-            ctx.drawImage(
-                window.document.getElementById("ttlogo_sl"),
-                x2 - icon_size - icon_margin,
-                y1 + icon_margin,
-                icon_size,
-                icon_size,
-            )
+        #if icon_size:
+        #    ctx.drawImage(
+        #        window.document.getElementById("ttlogo_sl"),
+        #        x2 - icon_size - icon_margin,
+        #        y1 + icon_margin,
+        #        icon_size,
+        #        icon_size,
+        #    )
 
         # Always draw the menu button
         self._draw_menu_button(ctx, x1, y1, x2, y2)
