@@ -619,6 +619,8 @@ class SimpleSettings:
             "report_hidesecondary": False,
             "report_format": "hm",
             "report_showrecords": True,
+            "report_hiderecordtags": False,
+            "report_username": "",
         }
         self._synced_keys = {
             "first_day_of_week": 1,
