@@ -3407,11 +3407,15 @@ class ReportDialog(BaseDialog):
         # Add pagination
         doc.setFontSize(8)
         doc.setTextColor("#555")
+
         for i in range(npages):
             pagenr = i + 1
             doc.setPage(pagenr)
-            x, y = width - 0.5 * margin, 0.5 * margin
-            doc.text(f"{pagenr}/{npages}", x, y, {"align": "right", "baseline": "top"})
+            # x, y = width - 0.5 * margin, 0.5 * margin
+            pagetext = f"{pagenr}/{npages}"
+            pagetext_width = doc.getTextWidth(pagetext)
+            x, y = (width - pagetext_width) / 2, height - margin * 0.5
+            doc.text(pagetext, x, y)
 
         #doc.save(self._get_export_filename("pdf"))
         doc.output('dataurlnewwindow')  # handy during dev
