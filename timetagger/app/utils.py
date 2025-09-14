@@ -619,6 +619,7 @@ class SimpleSettings:
             "report_hidesecondary": False,
             "report_format": "hm",
             "report_showrecords": True,
+            "report_showpdftagsummary": True,
             "report_hiderecordtags": False,
             "report_username": "",
         }

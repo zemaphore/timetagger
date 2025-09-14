@@ -2812,6 +2812,7 @@ class ReportDialog(BaseDialog):
                                      </select>
                 <div>Details:</div> <label><input type='checkbox' checked /> Show records</label>
                 <div>Records:</div> <label><input type='checkbox' /> Hide tags on records</label>
+                <div>PDF:</div> <label><input type='checkbox' checked /> Show tag summary</label>
                 <div>Username:</div> <input type='text' placeholder='Enter Username...' />
                 <button type='button'><i class='fas'>\uf328</i>&nbsp;&nbsp;{self._copybuttext}</button>
                     <div>paste in a spreadsheet</div>
@@ -2836,11 +2837,12 @@ class ReportDialog(BaseDialog):
         self._format_but = form.children[11]
         self._showrecords_but = form.children[13].children[0]  # inside label
         self._hide_record_tags_but = form.children[15].children[0] # inside label
-        self._user_name_input = form.children[17]
+        self._show_pdf_tag_summary_but = form.children[17].children[0] # inside label
+        self._user_name_input = form.children[19]
 
-        self._copy_but = form.children[18]
-        self._savecsv_but = form.children[20]
-        self._savepdf_but = form.children[22]
+        self._copy_but = form.children[20]
+        self._savecsv_but = form.children[22]
+        self._savepdf_but = form.children[24]
 
         # Connect input elements
         close_but = self.maindiv.children[0].children[-1]
@@ -2868,6 +2870,8 @@ class ReportDialog(BaseDialog):
         self._showrecords_but.checked = showrecords
         hiderecordtags = window.simplesettings.get("report_hiderecordtags")
         self._hide_record_tags_but.checked = hiderecordtags
+        showpdftagsummary = window.simplesettings.get("report_showpdftagsummary")
+        self._show_pdf_tag_summary_but.checked = showpdftagsummary
         report_username = window.simplesettings.get("report_username")
         self._user_name_input.value = report_username
 
@@ -2878,6 +2882,7 @@ class ReportDialog(BaseDialog):
         self._format_but.onchange = self._on_setting_changed
         self._showrecords_but.oninput = self._on_setting_changed
         self._hide_record_tags_but.oninput = self._on_setting_changed
+        self._show_pdf_tag_summary_but.oninput = self._on_setting_changed
         self._user_name_input.onchange = self._on_setting_changed
         #
         self._copy_but.onclick = self._copy_clipboard
@@ -2899,6 +2904,7 @@ class ReportDialog(BaseDialog):
         )
         window.simplesettings.set("report_format", self._format_but.value)
         window.simplesettings.set("report_showrecords", self._showrecords_but.checked)
+        window.simplesettings.set("report_showpdftagsummary", self._show_pdf_tag_summary_but.checked)
         window.simplesettings.set("report_hiderecordtags", self._hide_record_tags_but.checked)
         window.simplesettings.set("report_username", self._user_name_input.value)
 
@@ -3295,16 +3301,20 @@ class ReportDialog(BaseDialog):
         username = self._user_name_input.value
 
         doc.setFontSize(11)
-        doc.text("Tags:  ", margin + 20, margin + 15, {"align": "right"})
-        doc.text(tagname, margin + 20, margin + 15)
-        doc.text("From:  ", margin + 20, margin + 20, {"align": "right"})
-        doc.text(d1, margin + 20, margin + 20)
-        doc.text("Until:  ", margin + 20, margin + 25, {"align": "right"})
-        doc.text(d2, margin + 20, margin + 25)
-        
+        props_margin_left = margin
+        props_margin_top = margin + 15
+        showtagsummary = self._show_pdf_tag_summary_but.checked
+
         if len(username) > 0:
-          doc.text("User:  ", margin + 20, margin + 30, {"align": "right"})
-          doc.text(username, margin + 20, margin + 30)
+          doc.text(f"Person:  {username}", props_margin_left, props_margin_top)
+          props_margin_top += 5
+
+        doc.text(f"Period:  {d1} \u2013 {d2}", props_margin_left, props_margin_top)
+        props_margin_top += 5
+
+        if showtagsummary:
+          doc.text(f"Tags:  {tagname}", props_margin_left, props_margin_top)
+          props_margin_top += 5
 
         # Prepare drawing table
         doc.setFontSize(10)
@@ -3403,8 +3413,8 @@ class ReportDialog(BaseDialog):
             x, y = width - 0.5 * margin, 0.5 * margin
             doc.text(f"{pagenr}/{npages}", x, y, {"align": "right", "baseline": "top"})
 
-        doc.save(self._get_export_filename("pdf"))
-        # doc.output('dataurlnewwindow')  # handy during dev
+        #doc.save(self._get_export_filename("pdf"))
+        doc.output('dataurlnewwindow')  # handy during dev
 
 
 class ExportDialog(BaseDialog):
