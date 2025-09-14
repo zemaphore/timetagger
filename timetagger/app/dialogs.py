@@ -3320,7 +3320,7 @@ class ReportDialog(BaseDialog):
         doc.setFontSize(10)
         left_middle = {"align": "left", "baseline": "middle"}
         right_middle = {"align": "right", "baseline": "middle"}
-        y = margin + 35
+        y = props_margin_top
 
         # Draw table
         npages = 1
